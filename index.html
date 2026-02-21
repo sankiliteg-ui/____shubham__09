@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shubham Sir - 3D Architect</title>
+    <style>
+        :root {
+            --cyan: #00f2ff;
+            --purple: #bc13fe;
+            --white: #ffffff;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #020205;
+            overflow: hidden;
+            font-family: 'Montserrat', sans-serif;
+            touch-action: none;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .main-ui {
+            position: relative;
+            z-index: 10;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1500px;
+        }
+
+        .text-3d-box {
+            transform-style: preserve-3d;
+            will-change: transform;
+            transition: transform 0.15s ease-out;
+            text-align: center;
+        }
+
+        /* Advanced 3D Text with Bezel and Blink */
+        .premium-h1 {
+            font-size: clamp(2rem, 9vw, 4.5rem);
+            font-weight: 900;
+            color: transparent;
+            -webkit-text-stroke: 1.5px rgba(255,255,255,0.8);
+            letter-spacing: 6px;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: 
+                float 4s infinite ease-in-out alternate,
+                electricBlink 5s infinite;
+        }
+
+        /* Glass Shine Overlay */
+        .premium-h1::before {
+            content: "GOOD MORNING\nSHUBHAM SIR";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            color: #fff;
+            -webkit-text-stroke: 0px;
+            clip-path: polygon(0% 0%, 20% 0%, 50% 100%, 0% 100%);
+            animation: scan 3s infinite linear;
+            opacity: 0.5;
+            filter: blur(2px);
+            white-space: pre;
+        }
+
+        /* Depth Layer */
+        .premium-h1::after {
+            content: "GOOD MORNING\nSHUBHAM SIR";
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: translateZ(-40px);
+            -webkit-text-stroke: 2px var(--purple);
+            filter: blur(10px);
+            opacity: 0.3;
+            white-space: pre;
+        }
+
+        @keyframes float {
+            0% { transform: translateZ(50px) rotateX(-5deg); }
+            100% { transform: translateZ(150px) rotateX(15deg); }
+        }
+
+        @keyframes electricBlink {
+            0%, 88%, 93%, 95%, 100% { opacity: 1; filter: drop-shadow(0 0 15px var(--cyan)); }
+            90%, 94% { opacity: 0.3; filter: none; }
+        }
+
+        @keyframes scan {
+            0% { clip-path: polygon(-100% 0%, -50% 0%, -20% 100%, -70% 100%); }
+            100% { clip-path: polygon(120% 0%, 170% 0%, 200% 100%, 150% 100%); }
+        }
+
+        /* Interaction Sparks */
+        .spark {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--cyan);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+            animation: explode 0.8s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <div class="main-ui" id="trigger">
+        <div class="text-3d-box" id="box">
+            <h1 class="premium-h1">GOOD MORNING<br>SHUBHAM SIR</h1>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const box = document.getElementById('box');
+        const trigger = document.getElementById('trigger');
+
+        let width, height, dots = [];
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            dots = [];
+            for (let i = 0; i < 60; i++) {
+                dots.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    z: Math.random() * width,
+                    r: Math.random() * 2
+                });
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#020205';
+            ctx.fillRect(0, 0, width, height);
+            
+            dots.forEach(d => {
+                d.z -= 2;
+                if (d.z <= 0) d.z = width;
+                
+                let s = 400 / d.z;
+                let px = (d.x - width/2) * s + width/2;
+                let py = (d.y - height/2) * s + height/2;
+
+                ctx.fillStyle = d.z < width/3 ? '#bc13fe' : '#00f2ff';
+                ctx.globalAlpha = (1 - d.z/width);
+                ctx.beginPath();
+                ctx.arc(px, py, d.r * s, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Draw connecting lines for "Matrix" look
+                ctx.strokeStyle = 'rgba(0, 242, 255, 0.05)';
+                ctx.lineWidth = 0.5;
+                ctx.lineTo(width/2, height/2);
+                ctx.stroke();
+            });
+            requestAnimationFrame(draw);
+        }
+
+        // Android Gyro-style Tilt
+        function handleMove(e) {
+            const x = e.clientX || e.touches[0].clientX;
+            const y = e.clientY || e.touches[0].clientY;
+            const rx = (height/2 - y) / 10;
+            const ry = (width/2 - x) / -10;
+            box.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+        }
+
+        // Performance Sparks
+        function createSparks(e) {
+            const x = e.clientX || e.touches[0].clientX;
+            const y = e.clientY || e.touches[0].clientY;
+            for(let i=0; i<15; i++) {
+                const s = document.createElement('div');
+                s.className = 'spark';
+                s.style.left = x + 'px';
+                s.style.top = y + 'px';
+                s.style.setProperty('--dx', (Math.random()-0.5)*200 + 'px');
+                s.style.setProperty('--dy', (Math.random()-0.5)*200 + 'px');
+                document.body.appendChild(s);
+                setTimeout(() => s.remove(), 800);
+            }
+        }
+
+        trigger.addEventListener('mousemove', handleMove);
+        trigger.addEventListener('touchmove', handleMove);
+        trigger.addEventListener('mousedown', createSparks);
+        trigger.addEventListener('touchstart', createSparks);
+
+        window.addEventListener('resize', init);
+        init();
+        draw();
+    </script>
+</body>
+</html>
